@@ -308,6 +308,7 @@ function renderRanking(dados) {
     const anterior = mapAnt.get(item.armazem) || {};
 
     const deltaEstoque = item.estoque_loja - (anterior.estoque_loja || 0);
+    const deltaDevolvido = item.devol_cd - (anterior.devol_cd || 0);
     const deltaAcuracia = item.acuracia_estoque - (anterior.acuracia_estoque || 0);
 
     const valorBarra = state.ranking === 'estoque'
@@ -331,6 +332,8 @@ function renderRanking(dados) {
           <div class="rank-meta">
             Estoque: ${formatInt(item.estoque_loja)}
             <span class="${clsDelta(deltaEstoque, true)}">(${deltaTxt(deltaEstoque)})</span>
+            · Devolvido CD: ${formatInt(item.devol_cd)}
+            <span class="${clsDelta(deltaDevolvido, false)}">(${deltaTxt(deltaDevolvido)})</span>
             · Acurácia: ${formatPct(item.acuracia_estoque)}
             <span class="${clsDelta(deltaAcuracia, false)}">(${formatPP(deltaAcuracia)})</span>
           </div>
@@ -507,8 +510,8 @@ function renderLeitura(dados, atual, anterior) {
 
   bullets.push(`
     <span class="bullet-tag">Prioridade</span>
-    Atuar primeiro nas lojas com alto estoque atual e baixa acurácia,
-    pois indicam volume sistêmico sem confirmação/devolução ao CD.
+    Atuar primeiro nas lojas com alto estoque atual, baixa acurácia e baixa devolução ao CD,
+    pois indicam volume sistêmico sem confirmação/devolução operacional.
   `);
 
   lista.innerHTML = bullets.map(item => `<li>${item}</li>`).join('');
@@ -611,7 +614,7 @@ async function iniciarDashboard() {
 
     const ranking = document.getElementById('rankingBars');
 
-   if (ranking) {
+    if (ranking) {
       ranking.innerHTML = `
         <div class="empty-state">
           Erro ao carregar <b>data/${BASE_FILE}</b>.
