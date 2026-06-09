@@ -12,14 +12,13 @@
     <header class="hero">
       <div class="brand-area">
         <div class="logo-wrap">
-          <img src="./assets/logo-empresa.png" alt="Logo Alares" class="logo" onerror="this.style.display='none'; document.querySelector('.logo-fallback').style.display='grid';" />
-          <div class="logo-fallback" aria-hidden="true">AL</div>
+          <img src="./assets/logo-empresa.png" alt="Logo Alares" class="logo" />
         </div>
-        <div>
+        <div class="hero-copy">
           <p class="eyebrow">Gestão Regional · Estoque em Loja</p>
           <h1>Dashboard Lojas | Acuracidade de Estoque</h1>
           <p class="subtitle">Visão gerencial das lojas com maior volume em estoque e menor acurácia, comparando o cenário atual com o mês anterior.</p>
-          <p class="source-line">Fonte: CSV manual em <strong>/data</strong> · Atualização via GitHub Pages</p>
+          <p class="source-line">Fonte: <strong>SADIG</strong>, <strong>MetaBase</strong></p>
         </div>
       </div>
       <aside class="period-card" aria-label="Período da análise">
@@ -35,23 +34,49 @@
       <a href="#comparativo">Comparativo mensal</a>
       <a href="#detalhe">Tabela analítica</a>
       <a href="#leitura">Leitura automática</a>
+      <a href="#observacoes">Observações</a>
     </nav>
 
     <main>
       <section class="kpi-grid" id="resumo" aria-label="Indicadores executivos">
-        <article class="kpi-card accent-blue"><span class="kpi-label">Estoque inicial loja</span><strong class="kpi-value" id="kpiInicial">--</strong><small id="deltaInicial" class="kpi-desc">--</small></article>
-        <article class="kpi-card accent-red"><span class="kpi-label">Estoque loja atual</span><strong class="kpi-value" id="kpiEstoque">--</strong><small id="deltaEstoque" class="kpi-desc">--</small></article>
-        <article class="kpi-card accent-green"><span class="kpi-label">Devolvido ao CD</span><strong class="kpi-value" id="kpiDevol">--</strong><small id="deltaDevol" class="kpi-desc">--</small></article>
-        <article class="kpi-card accent-orange"><span class="kpi-label">Acurácia estoque</span><strong class="kpi-value" id="kpiAcuracia">--</strong><small id="deltaAcuracia" class="kpi-desc">--</small></article>
-        <article class="kpi-card accent-yellow"><span class="kpi-label">Lojas sem devolução</span><strong class="kpi-value" id="kpiSemDevolucao">--</strong><small class="kpi-desc">Lojas com estoque > 0 e devolução CD = 0.</small></article>
+        <article class="kpi-card accent-blue">
+          <span class="kpi-label">Estoque inicial loja</span>
+          <strong class="kpi-value" id="kpiInicial">--</strong>
+          <small id="deltaInicial" class="kpi-desc">--</small>
+        </article>
+        <article class="kpi-card accent-red">
+          <span class="kpi-label">Estoque loja atual</span>
+          <strong class="kpi-value" id="kpiEstoque">--</strong>
+          <small id="deltaEstoque" class="kpi-desc">--</small>
+        </article>
+        <article class="kpi-card accent-green">
+          <span class="kpi-label">Devolvido ao CD</span>
+          <strong class="kpi-value" id="kpiDevol">--</strong>
+          <small id="deltaDevol" class="kpi-desc">--</small>
+        </article>
+        <article class="kpi-card accent-orange">
+          <span class="kpi-label">Acurácia estoque</span>
+          <strong class="kpi-value" id="kpiAcuracia">--</strong>
+          <small id="deltaAcuracia" class="kpi-desc">--</small>
+        </article>
+        <article class="kpi-card accent-yellow">
+          <span class="kpi-label">Lojas sem devolução</span>
+          <strong class="kpi-value" id="kpiSemDevolucao">--</strong>
+          <small class="kpi-desc">Lojas com estoque &gt; 0 e devolução CD = 0.</small>
+        </article>
       </section>
 
       <section class="dashboard-grid" id="ranking">
         <article class="panel main-panel">
           <div class="panel-header">
-            <div><p class="eyebrow">Ranking executivo</p><h2 id="tituloRanking">Maiores estoques em loja</h2></div>
+            <div>
+              <p class="eyebrow">Ranking executivo</p>
+              <h2 id="tituloRanking">Maiores estoques em loja</h2>
+            </div>
             <div class="toolbar">
-              <select id="filtroUf" class="select-filter"><option value="TODAS">Todas as UFs</option></select>
+              <select id="filtroUf" class="select-filter">
+                <option value="TODAS">Todas as UFs</option>
+              </select>
               <button class="tab-btn active" data-ranking="estoque">Maior estoque</button>
               <button class="tab-btn" data-ranking="acuracia">Menor acurácia</button>
             </div>
@@ -60,42 +85,128 @@
         </article>
 
         <aside class="panel insight-panel">
-          <div class="panel-header compact"><div><p class="eyebrow">Composição atual</p><h2>Estoque x Devolução</h2></div></div>
-          <div class="donut-wrap"><div class="donut" id="donutChart"></div><div class="donut-center"><span>Pendente</span><strong id="donutPendente">--</strong></div></div>
+          <div class="panel-header compact">
+            <div>
+              <p class="eyebrow">Composição atual</p>
+              <h2>Estoque x Devolução</h2>
+            </div>
+          </div>
+          <div class="donut-wrap">
+            <div class="donut" id="donutChart"></div>
+            <div class="donut-center">
+              <span>Pendente</span>
+              <strong id="donutPendente">--</strong>
+            </div>
+          </div>
           <div class="legend-list" id="legendList"></div>
         </aside>
       </section>
 
       <section class="panel" id="comparativo">
-        <div class="panel-header compact"><div><p class="eyebrow">Comparativo mensal</p><h2>ABR/2026 x MAI/2026</h2></div></div>
+        <div class="panel-header compact">
+          <div>
+            <p class="eyebrow">Comparativo mensal</p>
+            <h2 id="tituloComparativo">Comparativo mensal</h2>
+          </div>
+        </div>
         <div class="mini-grid" id="miniComparativo"></div>
       </section>
 
       <section class="panel" id="detalhe">
         <div class="panel-header">
-          <div><p class="eyebrow">Apoio analítico</p><h2>Detalhamento por loja · cenário atual e variação</h2></div>
-          <div class="search-box"><input id="buscaLoja" type="search" placeholder="Buscar loja..." autocomplete="off" /></div>
+          <div>
+            <p class="eyebrow">Apoio analítico</p>
+            <h2>Detalhamento por loja · cenário atual e variação</h2>
+          </div>
+          <div class="search-box">
+            <input id="buscaLoja" type="search" placeholder="Buscar loja..." autocomplete="off" />
+          </div>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr>
-              <th>Prioridade</th><th>Loja</th><th>UF</th>
-              <th class="num">Estoque inicial</th><th class="num">Δ Inicial</th>
-              <th class="num">Estoque loja</th><th class="num">Δ Estoque</th>
-              <th class="num">Devol. CD</th><th class="num">Δ Devol.</th>
-              <th class="num">Acurácia</th><th class="num">Δ p.p.</th>
-            </tr></thead>
+            <thead>
+              <tr>
+                <th>Prioridade</th>
+                <th>Loja</th>
+                <th>UF</th>
+                <th class="num">Estoque inicial</th>
+                <th class="num">Δ Inicial</th>
+                <th class="num">Estoque loja</th>
+                <th class="num">Δ Estoque</th>
+                <th class="num">Devol. CD</th>
+                <th class="num">Δ Devol.</th>
+                <th class="num">Acurácia</th>
+                <th class="num">Δ p.p.</th>
+              </tr>
+            </thead>
             <tbody id="tabelaLojas"></tbody>
           </table>
         </div>
       </section>
 
       <section class="panel executive-reading" id="leitura">
-        <div class="panel-header compact"><div><p class="eyebrow">Leitura executiva automática</p><h2>Conclusões para gestão regional</h2></div></div>
+        <div class="panel-header compact">
+          <div>
+            <p class="eyebrow">Leitura executiva automática</p>
+            <h2>Conclusões para gestão regional</h2>
+          </div>
+        </div>
         <ul id="bulletsExecutivos" class="bullet-list"></ul>
       </section>
 
-      <div class="footer-actions"><a href="#topo" class="btn">Voltar ao resumo executivo</a></div>
+      <section class="panel observations-panel" id="observacoes">
+        <div class="panel-header compact">
+          <div>
+            <p class="eyebrow">Observações operacionais</p>
+            <h2>Tratativas identificadas nas lojas</h2>
+          </div>
+        </div>
+
+        <div class="observations-grid">
+          <div class="observation-table-wrap">
+            <table class="observation-table">
+              <thead>
+                <tr>
+                  <th>Lojas</th>
+                  <th>Processo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Loja Caldas</td><td>Não realizou tratativa de tela</td></tr>
+                <tr><td>Loja E S Pinhal</td><td>Não realizou tratativa de tela</td></tr>
+                <tr><td>Loja Jacarezinho</td><td>Não realizou tratativa de tela</td></tr>
+                <tr><td>Loja Ourinhos</td><td>Não realizou tratativa de tela</td></tr>
+                <tr><td>Loja Poços de Caldas</td><td>Não realizou tratativa de tela</td></tr>
+                <tr><td>Loja Pouso Alegre</td><td>Não realizou tratativa de tela</td></tr>
+                <tr><td>Loja São João da Boa Vista</td><td>Não realizou tratativa de tela</td></tr>
+                <tr><td>Loja Vargem</td><td>Não realizou tratativa de tela</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="observation-table-wrap">
+            <table class="observation-table">
+              <thead>
+                <tr>
+                  <th>Lojas</th>
+                  <th>Outros</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Loja Santa R Sapucaí</td><td>Sem retorno/Não respondeu</td></tr>
+                <tr><td>Loja Guaxupé</td><td>Sem retorno/Não respondeu</td></tr>
+                <tr><td>Loja Muzambinho</td><td>Sem retorno/Não respondeu</td></tr>
+                <tr><td>Loja Divisa Nova</td><td>Fez uma transferência para cada equipamento</td></tr>
+                <tr><td>Loja Alterosa</td><td>Fez chamado para tela de estoque</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <div class="footer-actions">
+        <a href="#topo" class="btn">Voltar ao resumo executivo</a>
+      </div>
     </main>
   </div>
   <script src="./app.js"></script>
