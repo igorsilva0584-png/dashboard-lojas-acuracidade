@@ -94,7 +94,8 @@ function normalizar(row) {
     estoque_inicial_loja: parseNumber(row.estoque_inicial_loja),
     estoque_loja: parseNumber(row.estoque_loja),
     devol_cd: parseNumber(row.devol_cd),
-    acuracia_estoque: parseNumber(row.acuracia_estoque)
+    acuracia_estoque: parseNumber(row.acuracia_estoque),
+    prioridade_estoque: 'Baixa'
   };
 }
 
@@ -192,20 +193,57 @@ function clsDelta(valor, invert = false) {
   return positivo ? 'delta-good' : 'delta-bad';
 }
 
+/*
+  Regra oficial da PRIORIDADE:
+  - Base: mês atual completo, sem depender do filtro de UF ou busca.
+  - Critério: somente estoque_loja atual.
+  - estoque_loja = 0 => Baixa automática.
+  - Lojas com estoque_loja > 0 entram no quartil por posição percentual.
+  - Ordenação: estoque_loja desc, estoque_inicial_loja desc, armazem A-Z.
+  - Até 25% => Crítica; até 50% => Alta; até 75% => Média; acima de 75% => Baixa.
+*/
+function calcularPrioridadesPorQuartilEstoque() {
+  const dadosAtual = getPeriodo(state.atual);
+
+  dadosAtual.forEach(item => {
+    item.prioridade_estoque = 'Baixa';
+  });
+
+  const comEstoque = dadosAtual
+    .filter(item => item.estoque_loja > 0)
+    .sort((a, b) => {
+      if (b.estoque_loja !== a.estoque_loja) {
+        return b.estoque_loja - a.estoque_loja;
+      }
+
+      if (b.estoque_inicial_loja !== a.estoque_inicial_loja) {
+        return b.estoque_inicial_loja - a.estoque_inicial_loja;
+      }
+
+      return a.armazem.localeCompare(b.armazem, 'pt-BR');
+    });
+
+  const total = comEstoque.length;
+
+  if (total === 0) return;
+
+  comEstoque.forEach((item, index) => {
+    const posicaoPercentual = (index + 1) / total;
+
+    if (posicaoPercentual <= 0.25) {
+      item.prioridade_estoque = 'Crítica';
+    } else if (posicaoPercentual <= 0.50) {
+      item.prioridade_estoque = 'Alta';
+    } else if (posicaoPercentual <= 0.75) {
+      item.prioridade_estoque = 'Média';
+    } else {
+      item.prioridade_estoque = 'Baixa';
+    }
+  });
+}
+
 function prioridade(item) {
-  if (item.estoque_loja >= 100 || item.acuracia_estoque <= 0.10) {
-    return 'Crítica';
-  }
-
-  if (item.estoque_loja >= 50 || item.acuracia_estoque <= 0.35) {
-    return 'Alta';
-  }
-
-  if (item.estoque_loja >= 10 || item.acuracia_estoque <= 0.70) {
-    return 'Média';
-  }
-
-  return 'Baixa';
+  return item.prioridade_estoque || 'Baixa';
 }
 
 function escapeHTML(value) {
@@ -276,7 +314,15 @@ function renderRanking(dados) {
   const ordenados = [...dados]
     .sort((a, b) => {
       if (state.ranking === 'estoque') {
-        return b.estoque_loja - a.estoque_loja;
+        if (b.estoque_loja !== a.estoque_loja) {
+          return b.estoque_loja - a.estoque_loja;
+        }
+
+        if (b.estoque_inicial_loja !== a.estoque_inicial_loja) {
+          return b.estoque_inicial_loja - a.estoque_inicial_loja;
+        }
+
+        return a.armazem.localeCompare(b.armazem, 'pt-BR');
       }
 
       return a.acuracia_estoque - b.acuracia_estoque;
@@ -422,7 +468,15 @@ function renderTabela(dados) {
   const mapAnt = anteriorMap();
 
   const ordenados = [...dados].sort((a, b) => {
-    return b.estoque_loja - a.estoque_loja || a.acuracia_estoque - b.acuracia_estoque;
+    if (b.estoque_loja !== a.estoque_loja) {
+      return b.estoque_loja - a.estoque_loja;
+    }
+
+    if (b.estoque_inicial_loja !== a.estoque_inicial_loja) {
+      return b.estoque_inicial_loja - a.estoque_inicial_loja;
+    }
+
+    return a.armazem.localeCompare(b.armazem, 'pt-BR');
   });
 
   if (!ordenados.length) {
@@ -510,8 +564,8 @@ function renderLeitura(dados, atual, anterior) {
 
   bullets.push(`
     <span class="bullet-tag">Prioridade</span>
-    Atuar primeiro nas lojas com alto estoque atual, baixa acurácia e baixa devolução ao CD,
-    pois indicam volume sistêmico sem confirmação/devolução operacional.
+    A coluna prioridade usa quartis do estoque atual da base geral: as 25% lojas com maior estoque são Críticas,
+    os próximos quartis são Alta, Média e Baixa. Lojas com estoque zerado são Baixa automaticamente.
   `);
 
   lista.innerHTML = bullets.map(item => `<li>${item}</li>`).join('');
@@ -605,6 +659,7 @@ async function iniciarDashboard() {
     setText('periodoAtual', state.atual);
     setText('periodoAnterior', 'Comparativo: ' + state.anterior);
 
+    calcularPrioridadesPorQuartilEstoque();
     popularFiltros();
     configurarEventos();
     renderDashboard();
