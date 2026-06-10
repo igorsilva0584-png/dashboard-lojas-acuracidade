@@ -196,10 +196,13 @@ function clsDelta(valor, invert = false) {
 /*
   Regra oficial da PRIORIDADE:
   - Base: mês atual completo, sem depender do filtro de UF ou busca.
-  - Critério: somente estoque_loja atual.
+  - Critério principal: somente estoque_loja atual.
   - estoque_loja = 0 => Baixa automática.
   - Lojas com estoque_loja > 0 entram no quartil por posição percentual.
-  - Ordenação: estoque_loja desc, estoque_inicial_loja desc, armazem A-Z.
+  - Ordenação do quartil:
+      1) estoque_loja desc;
+      2) acuracia_estoque asc, ou seja, menor acurácia primeiro;
+      3) armazem A-Z.
   - Até 25% => Crítica; até 50% => Alta; até 75% => Média; acima de 75% => Baixa.
 */
 function calcularPrioridadesPorQuartilEstoque() {
@@ -216,8 +219,8 @@ function calcularPrioridadesPorQuartilEstoque() {
         return b.estoque_loja - a.estoque_loja;
       }
 
-      if (b.estoque_inicial_loja !== a.estoque_inicial_loja) {
-        return b.estoque_inicial_loja - a.estoque_inicial_loja;
+      if (a.acuracia_estoque !== b.acuracia_estoque) {
+        return a.acuracia_estoque - b.acuracia_estoque;
       }
 
       return a.armazem.localeCompare(b.armazem, 'pt-BR');
@@ -254,6 +257,18 @@ function escapeHTML(value) {
     "'": '&#39;',
     '"': '&quot;'
   }[caractere]));
+}
+
+function ordenarPorEstoqueAcuraciaNome(a, b) {
+  if (b.estoque_loja !== a.estoque_loja) {
+    return b.estoque_loja - a.estoque_loja;
+  }
+
+  if (a.acuracia_estoque !== b.acuracia_estoque) {
+    return a.acuracia_estoque - b.acuracia_estoque;
+  }
+
+  return a.armazem.localeCompare(b.armazem, 'pt-BR');
 }
 
 function renderDashboard() {
@@ -314,18 +329,14 @@ function renderRanking(dados) {
   const ordenados = [...dados]
     .sort((a, b) => {
       if (state.ranking === 'estoque') {
-        if (b.estoque_loja !== a.estoque_loja) {
-          return b.estoque_loja - a.estoque_loja;
-        }
-
-        if (b.estoque_inicial_loja !== a.estoque_inicial_loja) {
-          return b.estoque_inicial_loja - a.estoque_inicial_loja;
-        }
-
-        return a.armazem.localeCompare(b.armazem, 'pt-BR');
+        return ordenarPorEstoqueAcuraciaNome(a, b);
       }
 
-      return a.acuracia_estoque - b.acuracia_estoque;
+      if (a.acuracia_estoque !== b.acuracia_estoque) {
+        return a.acuracia_estoque - b.acuracia_estoque;
+      }
+
+      return ordenarPorEstoqueAcuraciaNome(a, b);
     })
     .slice(0, 10);
 
@@ -467,17 +478,7 @@ function renderTabela(dados) {
 
   const mapAnt = anteriorMap();
 
-  const ordenados = [...dados].sort((a, b) => {
-    if (b.estoque_loja !== a.estoque_loja) {
-      return b.estoque_loja - a.estoque_loja;
-    }
-
-    if (b.estoque_inicial_loja !== a.estoque_inicial_loja) {
-      return b.estoque_inicial_loja - a.estoque_inicial_loja;
-    }
-
-    return a.armazem.localeCompare(b.armazem, 'pt-BR');
-  });
+  const ordenados = [...dados].sort(ordenarPorEstoqueAcuraciaNome);
 
   if (!ordenados.length) {
     tbody.innerHTML = '<tr><td colspan="11">Nenhum registro encontrado.</td></tr>';
@@ -527,7 +528,7 @@ function renderLeitura(dados, atual, anterior) {
     return;
   }
 
-  const topEstoque = [...dados].sort((a, b) => b.estoque_loja - a.estoque_loja)[0];
+  const topEstoque = [...dados].sort(ordenarPorEstoqueAcuraciaNome)[0];
 
   const piorAcuracia = [...dados]
     .filter(item => item.estoque_inicial_loja > 0)
@@ -564,8 +565,8 @@ function renderLeitura(dados, atual, anterior) {
 
   bullets.push(`
     <span class="bullet-tag">Prioridade</span>
-    A coluna prioridade usa quartis do estoque atual da base geral: as 25% lojas com maior estoque são Críticas,
-    os próximos quartis são Alta, Média e Baixa. Lojas com estoque zerado são Baixa automaticamente.
+    A coluna prioridade usa quartis do estoque atual da base geral. Em empate no estoque, a menor acurácia fica acima;
+    se ainda houver empate, a ordenação segue pelo nome da loja. Lojas com estoque zerado são Baixa automaticamente.
   `);
 
   lista.innerHTML = bullets.map(item => `<li>${item}</li>`).join('');
