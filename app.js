@@ -7,7 +7,22 @@ const state = {
   anterior: null,
   uf: 'TODAS',
   busca: '',
-  ranking: 'estoque'
+  ranking: 'estoque',
+  tabelaSort: {
+    campo: 'estoque_loja',
+    direcao: 'desc'
+  }
+};
+
+const TABLE_SORT_CONFIG = {
+  3: { campo: 'estoque_inicial_loja', tipo: 'number', defaultDir: 'desc', label: 'Estoque inicial' },
+  4: { campo: 'deltaInicial', tipo: 'number', defaultDir: 'desc', label: 'Δ Inicial' },
+  5: { campo: 'estoque_loja', tipo: 'number', defaultDir: 'desc', label: 'Estoque loja' },
+  6: { campo: 'deltaEstoque', tipo: 'number', defaultDir: 'desc', label: 'Δ Estoque' },
+  7: { campo: 'devol_cd', tipo: 'number', defaultDir: 'desc', label: 'Devol. CD' },
+  8: { campo: 'deltaDevol', tipo: 'number', defaultDir: 'asc', label: 'Δ Devol.' },
+  9: { campo: 'acuracia_estoque', tipo: 'number', defaultDir: 'asc', label: 'Acurácia' },
+  10: { campo: 'deltaAcuracia', tipo: 'number', defaultDir: 'asc', label: 'Δ p.p.' }
 };
 
 async function carregarCSV(nomeArquivo) {
@@ -24,13 +39,16 @@ function limparTexto(valor) {
 function parseNumber(valor) {
   const original = limparTexto(valor);
   if (!original) return 0;
+
   const temPercentual = original.includes('%');
   let texto = original.replace('%', '').replace(/\s/g, '');
+
   if (texto.includes(',') && texto.includes('.')) {
     texto = texto.replace(/\./g, '').replace(',', '.');
   } else if (texto.includes(',')) {
     texto = texto.replace(',', '.');
   }
+
   const numero = Number(texto);
   if (!Number.isFinite(numero)) return 0;
   return temPercentual ? numero / 100 : numero;
@@ -44,6 +62,7 @@ function parseCSV(texto, delimitador = ';') {
     .trim();
 
   if (!limpo) return [];
+
   const linhas = limpo.split('\n');
   const cabecalhos = linhas.shift().split(delimitador).map(limparTexto);
 
@@ -51,7 +70,9 @@ function parseCSV(texto, delimitador = ';') {
     .filter(linha => linha.trim() !== '')
     .map(linha => {
       const colunas = linha.split(delimitador);
-      return Object.fromEntries(cabecalhos.map((cabecalho, i) => [cabecalho, limparTexto(colunas[i])]));
+      return Object.fromEntries(
+        cabecalhos.map((cabecalho, i) => [cabecalho, limparTexto(colunas[i])])
+      );
     });
 }
 
@@ -114,6 +135,7 @@ function totals(dados) {
   const inicial = soma(dados, 'estoque_inicial_loja');
   const estoque = soma(dados, 'estoque_loja');
   const devol = soma(dados, 'devol_cd');
+
   return {
     inicial,
     estoque,
@@ -197,12 +219,16 @@ function renderDashboard() {
 
   setText('kpiInicial', formatInt(totalAtual.inicial));
   setDelta('deltaInicial', totalAtual.inicial - totalAnterior.inicial, 'num', true, 'vs mês anterior');
+
   setText('kpiEstoque', formatInt(totalAtual.estoque));
   setDelta('deltaEstoque', totalAtual.estoque - totalAnterior.estoque, 'num', false, 'vs mês anterior');
+
   setText('kpiDevol', formatInt(totalAtual.devol));
   setDelta('deltaDevol', totalAtual.devol - totalAnterior.devol, 'num', true, 'vs mês anterior');
+
   setText('kpiAcuracia', formatPct(totalAtual.acuracia));
   setDelta('deltaAcuracia', totalAtual.acuracia - totalAnterior.acuracia, 'pct', true, 'vs mês anterior');
+
   setText('kpiSemDevolucao', formatInt(totalAtual.semDevolucao));
   setText('donutPendente', formatPct(totalAtual.inicial > 0 ? totalAtual.estoque / totalAtual.inicial : 0));
 
@@ -225,10 +251,7 @@ function setDelta(id, valor, tipo, quantoMaiorMelhor, sufixo) {
 
 function renderRanking(dados) {
   const container = document.getElementById('rankingBars');
-  if (!container) {
-    console.warn('Elemento não encontrado no HTML: #rankingBars');
-    return;
-  }
+  if (!container) return;
 
   const mapAnt = anteriorMap();
   const ordenados = [...dados].sort((a, b) => {
@@ -301,36 +324,121 @@ function renderDonut(totalAtual) {
 function renderMiniComparativo(atual, anterior) {
   const container = document.getElementById('miniComparativo');
   if (!container) return;
+
   setText('tituloComparativo', `${state.anterior} x ${state.atual}`);
+
   const itens = [
     ['Estoque inicial', atual.inicial, anterior.inicial, 'num', true],
     ['Estoque loja', atual.estoque, anterior.estoque, 'num', false],
     ['Devolvido CD', atual.devol, anterior.devol, 'num', true],
     ['Acurácia', atual.acuracia, anterior.acuracia, 'pct', true]
   ];
+
   container.innerHTML = itens.map(([label, valorAtual, valorAnterior, tipo, maiorMelhor]) => {
     const delta = valorAtual - valorAnterior;
     return `<div class="mini-card"><span>${label}</span><strong>${tipo === 'pct' ? formatPct(valorAtual) : formatInt(valorAtual)}</strong><small class="${clsDelta(delta, !maiorMelhor)}">${deltaTxt(delta, tipo)} vs ${state.anterior}</small></div>`;
   }).join('');
 }
 
+function enriquecerComDeltas(dados) {
+  const mapAnt = anteriorMap();
+  return dados.map(item => {
+    const anterior = mapAnt.get(item.armazem) || {};
+    return {
+      ...item,
+      deltaInicial: item.estoque_inicial_loja - (anterior.estoque_inicial_loja || 0),
+      deltaEstoque: item.estoque_loja - (anterior.estoque_loja || 0),
+      deltaDevol: item.devol_cd - (anterior.devol_cd || 0),
+      deltaAcuracia: item.acuracia_estoque - (anterior.acuracia_estoque || 0)
+    };
+  });
+}
+
+function ordenarTabela(dados) {
+  const config = state.tabelaSort;
+  const direcao = config.direcao === 'asc' ? 1 : -1;
+
+  return [...dados].sort((a, b) => {
+    const valorA = Number(a[config.campo] ?? 0);
+    const valorB = Number(b[config.campo] ?? 0);
+
+    if (valorA !== valorB) {
+      return (valorA - valorB) * direcao;
+    }
+
+    return ordenarPorEstoqueAcuraciaNome(a, b);
+  });
+}
+
+function atualizarIndicadoresOrdenacaoTabela() {
+  const ths = document.querySelectorAll('#detalhe table thead th');
+
+  ths.forEach((th, index) => {
+    const config = TABLE_SORT_CONFIG[index];
+    if (!config) return;
+
+    th.classList.remove('sort-asc', 'sort-desc');
+    th.setAttribute('aria-sort', 'none');
+
+    if (state.tabelaSort.campo === config.campo) {
+      const classe = state.tabelaSort.direcao === 'asc' ? 'sort-asc' : 'sort-desc';
+      const aria = state.tabelaSort.direcao === 'asc' ? 'ascending' : 'descending';
+      th.classList.add(classe);
+      th.setAttribute('aria-sort', aria);
+    }
+  });
+}
+
+function configurarOrdenacaoTabela() {
+  const ths = document.querySelectorAll('#detalhe table thead th');
+
+  ths.forEach((th, index) => {
+    const config = TABLE_SORT_CONFIG[index];
+    if (!config) return;
+
+    th.classList.add('sortable-th');
+    th.title = `Clique para ordenar por ${config.label}`;
+    th.setAttribute('role', 'button');
+    th.setAttribute('tabindex', '0');
+
+    const aplicarOrdenacao = () => {
+      const mesmoCampo = state.tabelaSort.campo === config.campo;
+      state.tabelaSort = {
+        campo: config.campo,
+        direcao: mesmoCampo
+          ? (state.tabelaSort.direcao === 'asc' ? 'desc' : 'asc')
+          : config.defaultDir
+      };
+
+      renderDashboard();
+    };
+
+    th.addEventListener('click', aplicarOrdenacao);
+    th.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        aplicarOrdenacao();
+      }
+    });
+  });
+
+  atualizarIndicadoresOrdenacaoTabela();
+}
+
 function renderTabela(dados) {
   const tbody = document.getElementById('tabelaLojas');
   if (!tbody) return;
-  const mapAnt = anteriorMap();
-  const ordenados = [...dados].sort(ordenarPorEstoqueAcuraciaNome);
+
+  const enriquecidos = enriquecerComDeltas(dados);
+  const ordenados = ordenarTabela(enriquecidos);
 
   if (!ordenados.length) {
     tbody.innerHTML = '<tr><td colspan="11">Nenhum registro encontrado.</td></tr>';
+    atualizarIndicadoresOrdenacaoTabela();
     return;
   }
 
   tbody.innerHTML = ordenados.map(item => {
-    const anterior = mapAnt.get(item.armazem) || {};
-    const deltaInicial = item.estoque_inicial_loja - (anterior.estoque_inicial_loja || 0);
-    const deltaEstoque = item.estoque_loja - (anterior.estoque_loja || 0);
-    const deltaDevol = item.devol_cd - (anterior.devol_cd || 0);
-    const deltaAcuracia = item.acuracia_estoque - (anterior.acuracia_estoque || 0);
     const prior = prioridade(item);
     const classePrioridade = prior.toLowerCase().replace('í', 'i');
 
@@ -340,16 +448,18 @@ function renderTabela(dados) {
         <td>${escapeHTML(item.armazem)}</td>
         <td>${escapeHTML(item.uf)}</td>
         <td class="num">${formatInt(item.estoque_inicial_loja)}</td>
-        <td class="num ${clsDelta(deltaInicial, true)}">${deltaTxt(deltaInicial)}</td>
+        <td class="num ${clsDelta(item.deltaInicial, true)}">${deltaTxt(item.deltaInicial)}</td>
         <td class="num">${formatInt(item.estoque_loja)}</td>
-        <td class="num ${clsDelta(deltaEstoque, true)}">${deltaTxt(deltaEstoque)}</td>
+        <td class="num ${clsDelta(item.deltaEstoque, true)}">${deltaTxt(item.deltaEstoque)}</td>
         <td class="num">${formatInt(item.devol_cd)}</td>
-        <td class="num ${clsDelta(deltaDevol, false)}">${deltaTxt(deltaDevol)}</td>
+        <td class="num ${clsDelta(item.deltaDevol, false)}">${deltaTxt(item.deltaDevol)}</td>
         <td class="num">${formatPct(item.acuracia_estoque)}</td>
-        <td class="num ${clsDelta(deltaAcuracia, false)}">${formatPP(deltaAcuracia)}</td>
+        <td class="num ${clsDelta(item.deltaAcuracia, false)}">${formatPP(item.deltaAcuracia)}</td>
       </tr>
     `;
   }).join('');
+
+  atualizarIndicadoresOrdenacaoTabela();
 }
 
 function renderLeitura(dados, atual, anterior) {
@@ -357,7 +467,9 @@ function renderLeitura(dados, atual, anterior) {
   if (!lista) return;
 
   const topEstoque = [...dados].sort(ordenarPorEstoqueAcuraciaNome)[0];
-  const piorAcuracia = [...dados].filter(item => item.estoque_inicial_loja > 0).sort((a, b) => a.acuracia_estoque - b.acuracia_estoque)[0];
+  const piorAcuracia = [...dados]
+    .filter(item => item.estoque_inicial_loja > 0)
+    .sort((a, b) => a.acuracia_estoque - b.acuracia_estoque)[0];
   const deltaEstoque = atual.estoque - anterior.estoque;
   const deltaAcuracia = atual.acuracia - anterior.acuracia;
   const bullets = [];
@@ -365,19 +477,24 @@ function renderLeitura(dados, atual, anterior) {
   if (topEstoque) {
     bullets.push(`<span class="bullet-tag">Estoque</span><b>${escapeHTML(topEstoque.armazem)}</b> concentra o maior estoque em loja no cenário atual, com <b>${formatInt(topEstoque.estoque_loja)}</b> equipamentos.`);
   }
+
   if (piorAcuracia) {
     bullets.push(`<span class="bullet-tag">Acurácia</span><b>${escapeHTML(piorAcuracia.armazem)}</b> está entre os principais pontos de atenção por acurácia de <b>${formatPct(piorAcuracia.acuracia_estoque)}</b>.`);
   }
+
   bullets.push(`<span class="bullet-tag">Comparativo</span>O estoque em loja variou <b class="${clsDelta(deltaEstoque, true)}">${deltaTxt(deltaEstoque)}</b> versus ${state.anterior}; a acurácia variou <b class="${clsDelta(deltaAcuracia, false)}">${formatPP(deltaAcuracia)}</b>.`);
-  bullets.push(`<span class="bullet-tag">Prioridade</span>A coluna prioridade usa quartis do estoque atual da base geral. Em empate no estoque, a menor acurácia fica acima. Lojas com estoque zerado são Baixa automaticamente.</span>`);
+  bullets.push(`<span class="bullet-tag">Prioridade</span>A coluna prioridade usa quartis do estoque atual da base geral. Em empate no estoque, a menor acurácia fica acima. Lojas com estoque zerado são Baixa automaticamente.`);
+
   lista.innerHTML = bullets.map(item => `<li>${item}</li>`).join('');
 }
 
 function popularFiltros() {
   const select = document.getElementById('filtroUf');
   if (!select) return;
+
   const ufs = [...new Set(state.dados.map(item => item.uf).filter(Boolean))].sort();
-  select.innerHTML = '<option value="TODAS">Todas as UFs</option>' + ufs.map(uf => `<option value="${escapeHTML(uf)}">${escapeHTML(uf)}</option>`).join('');
+  select.innerHTML = '<option value="TODAS">Todas as UFs</option>' +
+    ufs.map(uf => `<option value="${escapeHTML(uf)}">${escapeHTML(uf)}</option>`).join('');
 }
 
 function configurarEventos() {
@@ -405,6 +522,8 @@ function configurarEventos() {
       renderDashboard();
     });
   });
+
+  configurarOrdenacaoTabela();
 }
 
 async function iniciarDashboard() {
