@@ -31,7 +31,7 @@
       <a href="#comparativo">Comparativo mensal</a>
       <a href="#detalhe">Tabela analítica</a>
       <a href="#leitura">Leitura automática</a>
-      <a href="#observacoes">Observações</a>
+      <a href="#observacoes" id="navObservacoes">Observações</a>
     </nav>
 
     <main>
@@ -62,45 +62,20 @@
         </aside>
       </section>
 
-      <section class="panel" id="comparativo">
-        <div class="panel-header compact"><div><p class="eyebrow">Comparativo mensal</p><h2 id="tituloComparativo">Comparativo mensal</h2></div></div>
-        <div class="mini-grid" id="miniComparativo"></div>
-      </section>
+      <section class="panel" id="comparativo"><div class="panel-header compact"><div><p class="eyebrow">Comparativo mensal</p><h2 id="tituloComparativo">Comparativo mensal</h2></div></div><div class="mini-grid" id="miniComparativo"></div></section>
 
       <section class="panel" id="detalhe">
-        <div class="panel-header">
-          <div><p class="eyebrow">Apoio analítico</p><h2>Detalhamento por loja · cenário atual e variação</h2></div>
-          <div class="search-box"><input id="buscaLoja" type="search" placeholder="Buscar loja..." autocomplete="off" /></div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Prioridade</th><th>Loja</th><th>UF</th>
-                <th class="num">Estoque inicial</th><th class="num">Δ Inicial</th>
-                <th class="num">Estoque loja</th><th class="num">Δ Estoque</th>
-                <th class="num">Devol. CD</th><th class="num">Δ Devol.</th>
-                <th class="num">Acurácia</th><th class="num">Δ p.p.</th>
-                <th class="num">% Retrabalho logística</th>
-                <th class="num">Retrabalho logística</th>
-                <th class="num">Δ Retrabalho</th>
-              </tr>
-            </thead>
-            <tbody id="tabelaLojas"></tbody>
-          </table>
-        </div>
+        <div class="panel-header"><div><p class="eyebrow">Apoio analítico</p><h2>Detalhamento por loja · cenário atual e variação</h2></div><div class="search-box"><input id="buscaLoja" type="search" placeholder="Buscar loja..." autocomplete="off" /></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Prioridade</th><th>Loja</th><th>UF</th><th class="num">Estoque inicial</th><th class="num">Δ Inicial</th><th class="num">Estoque loja</th><th class="num">Δ Estoque</th><th class="num">Devol. CD</th><th class="num">Δ Devol.</th><th class="num">Acurácia</th><th class="num">Δ p.p.</th><th class="num">% Retrabalho logística</th><th class="num">Retrabalho logística</th><th class="num">Δ Retrabalho</th></tr></thead><tbody id="tabelaLojas"></tbody></table></div>
       </section>
 
-      <section class="panel executive-reading" id="leitura">
-        <div class="panel-header compact"><div><p class="eyebrow">Leitura executiva automática</p><h2>Conclusões para gestão regional</h2></div></div>
-        <ul id="bulletsExecutivos" class="bullet-list"></ul>
-      </section>
+      <section class="panel executive-reading" id="leitura"><div class="panel-header compact"><div><p class="eyebrow">Leitura executiva automática</p><h2>Conclusões para gestão regional</h2></div></div><ul id="bulletsExecutivos" class="bullet-list"></ul></section>
 
-      <section class="panel observations-panel" id="observacoes">
+      <section class="panel observations-panel hidden" id="observacoes">
         <div class="panel-header compact"><div><p class="eyebrow">Observações operacionais</p><h2>Tratativas identificadas nas lojas</h2></div></div>
         <div class="observations-grid">
-          <div class="observation-table-wrap"><table class="observation-table"><thead><tr><th>Lojas</th><th>Processo</th></tr></thead><tbody><tr><td>Loja Caldas</td><td>Não realizou tratativa de tela</td></tr><tr><td>Loja E S Pinhal</td><td>Não realizou tratativa de tela</td></tr><tr><td>Loja Jacarezinho</td><td>Não realizou tratativa de tela</td></tr><tr><td>Loja Ourinhos</td><td>Não realizou tratativa de tela</td></tr><tr><td>Loja Poços de Caldas</td><td>Não realizou tratativa de tela</td></tr><tr><td>Loja Pouso Alegre</td><td>Não realizou tratativa de tela</td></tr><tr><td>Loja São João da Boa Vista</td><td>Não realizou tratativa de tela</td></tr><tr><td>Loja Vargem</td><td>Não realizou tratativa de tela</td></tr></tbody></table></div>
-          <div class="observation-table-wrap"><table class="observation-table"><thead><tr><th>Lojas</th><th>Outros</th></tr></thead><tbody><tr><td>Loja Santa R Sapucaí</td><td>Sem retorno/Não respondeu</td></tr><tr><td>Loja Guaxupé</td><td>Sem retorno/Não respondeu</td></tr><tr><td>Loja Muzambinho</td><td>Sem retorno/Não respondeu</td></tr><tr><td>Loja Divisa Nova</td><td>Fez uma transferência para cada equipamento</td></tr><tr><td>Loja Alterosa</td><td>Fez chamado para tela de estoque</td></tr></tbody></table></div>
+          <div class="observation-table-wrap"><table class="observation-table"><thead><tr><th>Lojas</th><th>Processo</th></tr></thead><tbody id="tbodyObservacoesProcesso"></tbody></table></div>
+          <div class="observation-table-wrap"><table class="observation-table"><thead><tr><th>Lojas</th><th>Outros</th></tr></thead><tbody id="tbodyObservacoesOutros"></tbody></table></div>
         </div>
       </section>
       <div class="footer-actions"><a href="#topo" class="btn">Voltar ao resumo executivo</a></div>
